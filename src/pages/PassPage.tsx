@@ -68,26 +68,26 @@ export default function PassPage() {
           <div className="pass-key-value">{passKey}</div>
         </div>
 
-        <div style={{ textAlign: 'left', background: '#f7fafc', padding: '1.5rem', borderRadius: '8px', marginTop: '2rem' }}>
-          <p style={{ marginBottom: '0.5rem', color: '#4a5568' }}>
-            <strong>Category:</strong> {category}
+        <div style={{ textAlign: 'left', background: '#f8fafb', padding: '2rem', borderRadius: '10px', marginTop: '2rem', border: '1px solid #dde2e8' }}>
+          <p style={{ marginBottom: '0.75rem', color: '#2d3748', fontWeight: 500 }}>
+            <strong style={{ color: '#1a365d' }}>Category:</strong> <span style={{ color: '#1a365d', fontWeight: 600 }}>{category}</span>
           </p>
-          <p style={{ marginBottom: '0.5rem', color: '#4a5568' }}>
-            <strong>Visitor Type:</strong> {visitorType}
+          <p style={{ marginBottom: '0.75rem', color: '#2d3748', fontWeight: 500 }}>
+            <strong style={{ color: '#1a365d' }}>Visitor Type:</strong> <span style={{ color: '#1a365d', fontWeight: 600 }}>{visitorType}</span>
           </p>
           {companyName && (
-            <p style={{ marginBottom: '0.5rem', color: '#4a5568' }}>
-              <strong>Company/Organization:</strong> {companyName}
+            <p style={{ marginBottom: '0.75rem', color: '#2d3748', fontWeight: 500 }}>
+              <strong style={{ color: '#1a365d' }}>Company/Organization:</strong> <span style={{ color: '#1a365d', fontWeight: 600 }}>{companyName}</span>
             </p>
           )}
           {visitors && visitors.length > 0 && (
-            <p style={{ marginBottom: '0.5rem', color: '#4a5568' }}>
-              <strong>Number of Visitors:</strong> {visitors.length}
+            <p style={{ marginBottom: '0.75rem', color: '#2d3748', fontWeight: 500 }}>
+              <strong style={{ color: '#1a365d' }}>Number of Visitors:</strong> <span style={{ color: '#1a365d', fontWeight: 600 }}>{visitors.length}</span>
             </p>
           )}
           {purposeOfVisit && (
-            <p style={{ marginBottom: '0.5rem', color: '#4a5568' }}>
-              <strong>Purpose:</strong> {purposeOfVisit}
+            <p style={{ marginBottom: '0.75rem', color: '#2d3748', fontWeight: 500 }}>
+              <strong style={{ color: '#1a365d' }}>Purpose:</strong> <span style={{ color: '#1a365d', fontWeight: 600 }}>{purposeOfVisit}</span>
             </p>
           )}
         </div>

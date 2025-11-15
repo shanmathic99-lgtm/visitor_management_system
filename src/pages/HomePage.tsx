@@ -15,7 +15,10 @@ export default function HomePage() {
 
   return (
     <div className="page-container">
-      <h2 className="page-title">Welcome to Visitor Management System</h2>
+      <h2 className="page-title">Visitor Registration</h2>
+      <p style={{ textAlign: 'center', color: '#718096', marginBottom: '2.5rem', fontSize: '1.0625rem' }}>
+        Please enter your employee ID to proceed with visitor registration
+      </p>
       <form onSubmit={handleNext}>
         <div className="form-group">
           <label className="form-label" htmlFor="employeeId">
@@ -27,7 +30,7 @@ export default function HomePage() {
             className="form-input"
             value={employeeId}
             onChange={(e) => setEmployeeId(e.target.value)}
-            placeholder="Enter your employee ID"
+            placeholder="e.g., EMP-12345"
             required
           />
         </div>
