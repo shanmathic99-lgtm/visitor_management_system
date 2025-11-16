@@ -29,8 +29,8 @@ export default function VisitorTypePage() {
   return (
     <div className="page-container">
       <h2 className="page-title">Select Visitor Type</h2>
-      <p style={{ textAlign: 'center', color: '#4a5568', marginBottom: '2.5rem', fontSize: '1.0625rem', fontWeight: 500 }}>
-        Category: <span style={{ color: '#1a365d', fontWeight: 700 }}>{category}</span>
+      <p className="page-subtitle" style={{ marginBottom: '1rem' }}>
+        Category: <span className="category-badge">{category}</span>
       </p>
       <div className="visitor-type-grid">
         {visitorTypes.map((type) => (

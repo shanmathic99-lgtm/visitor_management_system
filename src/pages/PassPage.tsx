@@ -68,26 +68,31 @@ export default function PassPage() {
           <div className="pass-key-value">{passKey}</div>
         </div>
 
-        <div style={{ textAlign: 'left', background: '#f8fafb', padding: '2rem', borderRadius: '10px', marginTop: '2rem', border: '1px solid #dde2e8' }}>
-          <p style={{ marginBottom: '0.75rem', color: '#2d3748', fontWeight: 500 }}>
-            <strong style={{ color: '#1a365d' }}>Category:</strong> <span style={{ color: '#1a365d', fontWeight: 600 }}>{category}</span>
+        <div style={{ textAlign: 'left', background: '#f8fafc', padding: '2rem', borderRadius: '14px', marginTop: '2rem', border: '1.5px solid #e2e8f0' }}>
+          <p style={{ marginBottom: '1rem', color: '#334155', fontWeight: 500, fontSize: '0.9375rem' }}>
+            <strong style={{ color: '#0f172a', fontWeight: 700, display: 'inline-block', minWidth: '140px' }}>Category:</strong> 
+            <span style={{ color: '#0f172a', fontWeight: 600 }}> {category}</span>
           </p>
-          <p style={{ marginBottom: '0.75rem', color: '#2d3748', fontWeight: 500 }}>
-            <strong style={{ color: '#1a365d' }}>Visitor Type:</strong> <span style={{ color: '#1a365d', fontWeight: 600 }}>{visitorType}</span>
+          <p style={{ marginBottom: '1rem', color: '#334155', fontWeight: 500, fontSize: '0.9375rem' }}>
+            <strong style={{ color: '#0f172a', fontWeight: 700, display: 'inline-block', minWidth: '140px' }}>Visitor Type:</strong> 
+            <span style={{ color: '#0f172a', fontWeight: 600 }}> {visitorType}</span>
           </p>
           {companyName && (
-            <p style={{ marginBottom: '0.75rem', color: '#2d3748', fontWeight: 500 }}>
-              <strong style={{ color: '#1a365d' }}>Company/Organization:</strong> <span style={{ color: '#1a365d', fontWeight: 600 }}>{companyName}</span>
+            <p style={{ marginBottom: '1rem', color: '#334155', fontWeight: 500, fontSize: '0.9375rem' }}>
+              <strong style={{ color: '#0f172a', fontWeight: 700, display: 'inline-block', minWidth: '140px' }}>Company/Organization:</strong> 
+              <span style={{ color: '#0f172a', fontWeight: 600 }}> {companyName}</span>
             </p>
           )}
           {visitors && visitors.length > 0 && (
-            <p style={{ marginBottom: '0.75rem', color: '#2d3748', fontWeight: 500 }}>
-              <strong style={{ color: '#1a365d' }}>Number of Visitors:</strong> <span style={{ color: '#1a365d', fontWeight: 600 }}>{visitors.length}</span>
+            <p style={{ marginBottom: '1rem', color: '#334155', fontWeight: 500, fontSize: '0.9375rem' }}>
+              <strong style={{ color: '#0f172a', fontWeight: 700, display: 'inline-block', minWidth: '140px' }}>Number of Visitors:</strong> 
+              <span style={{ color: '#0f172a', fontWeight: 600 }}> {visitors.length}</span>
             </p>
           )}
           {purposeOfVisit && (
-            <p style={{ marginBottom: '0.75rem', color: '#2d3748', fontWeight: 500 }}>
-              <strong style={{ color: '#1a365d' }}>Purpose:</strong> <span style={{ color: '#1a365d', fontWeight: 600 }}>{purposeOfVisit}</span>
+            <p style={{ marginBottom: '0', color: '#334155', fontWeight: 500, fontSize: '0.9375rem' }}>
+              <strong style={{ color: '#0f172a', fontWeight: 700, display: 'inline-block', minWidth: '140px' }}>Purpose:</strong> 
+              <span style={{ color: '#0f172a', fontWeight: 600 }}> {purposeOfVisit}</span>
             </p>
           )}
         </div>

@@ -16,7 +16,7 @@ export default function HomePage() {
   return (
     <div className="page-container">
       <h2 className="page-title">Visitor Registration</h2>
-      <p style={{ textAlign: 'center', color: '#718096', marginBottom: '2.5rem', fontSize: '1.0625rem' }}>
+      <p className="page-subtitle">
         Please enter your employee ID to proceed with visitor registration
       </p>
       <form onSubmit={handleNext}>
