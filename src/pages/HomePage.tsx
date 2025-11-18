@@ -1,15 +1,62 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+interface EmployeeResponse {
+  employee?: {
+    id: number;
+    emp_id: string;
+    metadata: any;
+  };
+  error?: string;
+}
+
 export default function HomePage() {
   const [employeeId, setEmployeeId] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleNext = (e: React.FormEvent) => {
+  const handleNext = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (employeeId.trim()) {
-      sessionStorage.setItem('employeeId', employeeId);
-      navigate('/category');
+    setError('');
+    
+    if (!employeeId.trim()) {
+      setError('Please enter your employee ID');
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      const apiUrl = `https://86ti27uyel.execute-api.ap-southeast-2.amazonaws.com/default/hk01?emp_id=${encodeURIComponent(employeeId.trim())}`;
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data: EmployeeResponse = await response.json();
+
+      if (data.error) {
+        setError(data.error);
+        setLoading(false);
+        return;
+      }
+
+      if (data.employee) {
+        // Store employee data in sessionStorage
+        sessionStorage.setItem('employeeId', employeeId.trim());
+        sessionStorage.setItem('employeeData', JSON.stringify(data.employee));
+        navigate('/category');
+      } else {
+        setError('Invalid response from server');
+        setLoading(false);
+      }
+    } catch (err) {
+      setError('Failed to verify employee. Please try again.');
+      setLoading(false);
+      console.error('API Error:', err);
     }
   };
 
@@ -29,14 +76,23 @@ export default function HomePage() {
             id="employeeId"
             className="form-input"
             value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
-            placeholder="e.g., EMP-12345"
+            onChange={(e) => {
+              setEmployeeId(e.target.value);
+              setError(''); // Clear error when user types
+            }}
+            placeholder="e.g., 12193"
             required
+            disabled={loading}
           />
         </div>
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
         <div className="button-group">
-          <button type="submit" className="btn btn-primary">
-            Next
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? 'Verifying...' : 'Next'}
           </button>
         </div>
       </form>
