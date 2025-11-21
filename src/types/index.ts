@@ -12,6 +12,7 @@ export interface Visitor {
   age?: string;
   gender?: string;
   contact?: string;
+  relationship?: string;
 }
 
 export interface VisitorFormData {
