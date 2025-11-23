@@ -613,7 +613,6 @@ export default function VisitorFormPage() {
   );
 
   const renderExternalForm = () => {
-    const isVendorSupplier = visitorType === 'Vendor / Supplier';
     const isThirdPartyStaff = visitorType === 'Third-Party Staff';
     
     // Validate time is between 9am and 5pm
