@@ -4,10 +4,7 @@ import { VisitorCategory } from '../types';
 
 const categories: VisitorCategory[] = [
   'Employee',
-  'Business',
   'External',
-  'Compliance',
-  'Logistics',
   'Group',
 ];
 

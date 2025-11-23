@@ -24,6 +24,16 @@ export default function VisitorFormPage() {
   const [document, setDocument] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [companyContact, setCompanyContact] = useState('');
+  // Third-Party Staff fields
+  const [consultancyName, setConsultancyName] = useState('');
+  const [yourName, setYourName] = useState('');
+  const [deliveryManagerEmail, setDeliveryManagerEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [infyEmail, setInfyEmail] = useState('');
+  const [buildingNumber, setBuildingNumber] = useState('');
+  const [aadharDocument, setAadharDocument] = useState<File | null>(null);
+  const [approvalMailScreenshot, setApprovalMailScreenshot] = useState<File | null>(null);
 
   if (!category || !visitorType) {
     navigate('/category');
@@ -46,13 +56,44 @@ export default function VisitorFormPage() {
     }
   };
 
+  const handleAadharChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setAadharDocument(e.target.files[0]);
+    }
+  };
+
+  const handleApprovalMailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setApprovalMailScreenshot(e.target.files[0]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      // Get employee data from sessionStorage
+      // Validate visit date (and time for categories that need it)
+      // Third-Party Staff only needs date, others need both date and time
+      const needsTime = category !== 'External' || visitorType !== 'Third-Party Staff';
+      const visitDateTime = needsTime && startDate && startTime 
+        ? `${startDate} ${startTime}:00`
+        : startDate;
+
+      if (!startDate) {
+        setError('Please select visit date.');
+        setLoading(false);
+        return;
+      }
+
+      if (needsTime && !startTime) {
+        setError('Please select visit date and time.');
+        setLoading(false);
+        return;
+      }
+
+      // Get employee data from sessionStorage (needed for both Employee and External)
       const employeeDataStr = sessionStorage.getItem('employeeData');
       if (!employeeDataStr) {
         setError('Employee information not found. Please login again.');
@@ -79,75 +120,217 @@ export default function VisitorFormPage() {
         return;
       }
 
-      // Format visit_date: combine startDate and startTime into "YYYY-MM-DD HH:MM:SS"
-      const visitDateTime = startDate && startTime 
-        ? `${startDate} ${startTime}:00`
-        : null;
+      // Call API for Employee category
+      if (category === 'Employee') {
+        // Map visitors to API format
+        const visitorsData = visitors.map((visitor) => {
+          const visitorObj: any = {
+            visitor_name: visitor.name,
+            visitor_gender: visitor.gender,
+          };
 
-      if (!visitDateTime) {
-        setError('Please select visit date and time.');
-        setLoading(false);
-        return;
-      }
+          // Add relationship for Family visitor type
+          if (visitorType === 'Family' && visitor.relationship) {
+            visitorObj.visitor_relationship = visitor.relationship;
+          }
 
-      // Map visitors to API format
-      const visitorsData = visitors.map((visitor) => {
-        const visitorObj: any = {
-          visitor_name: visitor.name,
-          visitor_gender: visitor.gender,
+          // Add metadata_json if purposeOfVisit exists (for non-Family types)
+          if (visitorType !== 'Family' && purposeOfVisit) {
+            visitorObj.metadata_json = {
+              purpose: purposeOfVisit,
+            };
+          }
+
+          return visitorObj;
+        });
+
+        // Prepare request body
+        const requestBody = {
+          category: 'employee',
+          emp_id: empId,
+          visit_date: visitDateTime,
+          visitors: visitorsData,
         };
 
-        // Add relationship for Family visitor type
-        if (visitorType === 'Family' && visitor.relationship) {
-          visitorObj.visitor_relationship = visitor.relationship;
+        // Call the API
+        const response = await fetch('https://44wmv2jdqi.execute-api.ap-southeast-2.amazonaws.com/default/hk02', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          setError(data.error);
+          setLoading(false);
+          return;
         }
 
-        // Add metadata_json if purposeOfVisit exists (for non-Family types)
-        if (visitorType !== 'Family' && purposeOfVisit) {
-          visitorObj.metadata_json = {
-            purpose: purposeOfVisit,
+        // Success - navigate to pass page with API response data
+        navigate('/pass', {
+          state: {
+            category,
+            visitorType,
+            visitors,
+            companyName,
+            purposeOfVisit,
+            apiResponse: data,
+          },
+        });
+      } else if (category === 'External' && visitorType === 'Vendor / Supplier') {
+        // Validate required fields for Vendor/Supplier
+        if (!companyName || !companyAddress || !companyContact || !purposeOfVisit) {
+          setError('Please fill in all required fields.');
+          setLoading(false);
+          return;
+        }
+
+        // Validate time is between 9am and 5pm
+        const [hours, minutes] = startTime.split(':');
+        const hour = parseInt(hours);
+        const minute = parseInt(minutes || '0');
+        const totalMinutes = hour * 60 + minute;
+        const minMinutes = 9 * 60; // 9:00 AM
+        const maxMinutes = 17 * 60; // 5:00 PM
+        
+        if (totalMinutes < minMinutes || totalMinutes > maxMinutes) {
+          setError('Visit time must be between 9:00 AM and 5:00 PM');
+          setLoading(false);
+          return;
+        }
+
+        // Get current timestamp for requested_at
+        const now = new Date();
+        const requestedAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+        // Map visitors - all share same purpose and visit date
+        const visitorsData = visitors.map((visitor) => {
+          const visitorObj: any = {
+            visitor_name: visitor.name,
+            purpose_of_visit: purposeOfVisit,
+            visit_date: visitDateTime,
           };
+
+          // Add document URL if document is uploaded (for now, we'll skip this as it requires file upload handling)
+          // if (document) {
+          //   visitorObj.document = 'https://example.com/doc.pdf'; // This would need actual file upload implementation
+          // }
+
+          return visitorObj;
+        });
+
+        // Prepare request body for External Vendor/Supplier
+        // category comes from the selected category (External)
+        // sub_category comes from the selected visitor type (Vendor / Supplier)
+        const requestBody = {
+          emp_id: empId,
+          category: category, // "External"
+          sub_category: visitorType, // "Vendor / Supplier"
+          requested_at: requestedAt,
+          vendors: [
+            {
+              vendor_name: companyName,
+              vendor_address: companyAddress,
+              company_contact: companyContact,
+              visitors: visitorsData,
+            },
+          ],
+        };
+
+        // Call the API
+        const response = await fetch('https://jl7yevnyp9.execute-api.ap-southeast-2.amazonaws.com/default/hk03', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          setError(data.error);
+          setLoading(false);
+          return;
         }
 
-        return visitorObj;
-      });
+        // Success - navigate to pass page with API response data
+        navigate('/pass', {
+          state: {
+            category,
+            visitorType,
+            visitors,
+            companyName,
+            purposeOfVisit,
+            apiResponse: data,
+          },
+        });
+      } else if (category === 'External' && visitorType === 'Third-Party Staff') {
+        // Validate required fields for Third-Party Staff
+        // Note: aadhar_card and approval_email are not sent to API for now
+        if (!consultancyName || !yourName || !deliveryManagerEmail || !phoneNumber || !infyEmail || !buildingNumber || !startDate) {
+          setError('Please fill in all required fields.');
+          setLoading(false);
+          return;
+        }
 
-      // Prepare request body
-      const requestBody = {
-        category: category.toLowerCase(),
-        emp_id: empId,
-        visit_date: visitDateTime,
-        visitors: visitorsData,
-      };
+        // Prepare request body for Third-Party Staff
+        // Note: aadhar_card and approval_email fields are excluded for now
+        const requestBody = {
+          emp_id: empId,
+          staff_name: yourName,
+          consultancy_name: consultancyName,
+          category: category, // "External"
+          sub_category: visitorType, // "Third-Party Staff"
+          delivery_manager_emailid: deliveryManagerEmail,
+          phone_number: phoneNumber,
+          infy_email: infyEmail,
+          visit_date: startDate, // Only date, not datetime
+          building_number: buildingNumber,
+        };
 
-      // Call the API
-      const response = await fetch('https://44wmv2jdqi.execute-api.ap-southeast-2.amazonaws.com/default/hk02', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+        // Call the API
+        const response = await fetch('https://lun94pxmtb.execute-api.ap-southeast-2.amazonaws.com/default/hk04', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (data.error) {
-        setError(data.error);
-        setLoading(false);
-        return;
+        if (data.error) {
+          setError(data.error);
+          setLoading(false);
+          return;
+        }
+
+        // Success - navigate to pass page with API response data
+        navigate('/pass', {
+          state: {
+            category,
+            visitorType,
+            apiResponse: data,
+          },
+        });
+      } else {
+        // For other categories (Group), navigate without API call
+        // (API integration will be added later)
+        navigate('/pass', {
+          state: {
+            category,
+            visitorType,
+            visitors,
+            companyName,
+            purposeOfVisit,
+            visitDate: visitDateTime,
+          },
+        });
       }
-
-      // Success - navigate to pass page with API response data
-      navigate('/pass', {
-        state: {
-          category,
-          visitorType,
-          visitors,
-          companyName,
-          purposeOfVisit,
-          apiResponse: data,
-        },
-      });
     } catch (err) {
       setError('Failed to submit visitor request. Please try again.');
       setLoading(false);
@@ -429,118 +612,243 @@ export default function VisitorFormPage() {
     </>
   );
 
-  const renderExternalForm = () => (
-    <>
-      <div className="form-group">
-        <label className="form-label">
-          {visitorType === 'Vendor / Supplier' ? 'Vendor Company Name' : 'Company Name'}
-        </label>
-        <input
-          type="text"
-          className="form-input"
-          value={companyName}
-          onChange={(e) => setCompanyName(e.target.value)}
-          required
-        />
-      </div>
-      <div className="form-group">
-        <label className="form-label">Company Address</label>
-        <textarea
-          className="form-textarea"
-          value={companyAddress}
-          onChange={(e) => setCompanyAddress(e.target.value)}
-          required
-        />
-      </div>
-      <div className="visitors-list">
-        {visitors.map((visitor, index) => (
-          <div key={index} className="visitor-card">
-            <h4>Visitor {index + 1}</h4>
-            <div className="form-group">
-              <label className="form-label">Name</label>
+  const renderExternalForm = () => {
+    const isVendorSupplier = visitorType === 'Vendor / Supplier';
+    const isThirdPartyStaff = visitorType === 'Third-Party Staff';
+    
+    // Validate time is between 9am and 5pm
+    const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const time = e.target.value;
+      if (time) {
+        const [hours, minutes] = time.split(':');
+        const hour = parseInt(hours);
+        const minute = parseInt(minutes || '0');
+        const totalMinutes = hour * 60 + minute;
+        const minMinutes = 9 * 60; // 9:00 AM
+        const maxMinutes = 17 * 60; // 5:00 PM
+        
+        if (totalMinutes < minMinutes || totalMinutes > maxMinutes) {
+          setError('Visit time must be between 9:00 AM and 5:00 PM');
+          return;
+        }
+        setError('');
+      }
+      setStartTime(time);
+    };
+
+    // Render Third-Party Staff form
+    if (isThirdPartyStaff) {
+      return (
+        <>
+          <div className="form-group">
+            <label className="form-label">Consultancy Name</label>
+            <input
+              type="text"
+              className="form-input"
+              value={consultancyName}
+              onChange={(e) => setConsultancyName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Your Name</label>
+            <input
+              type="text"
+              className="form-input"
+              value={yourName}
+              onChange={(e) => setYourName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Delivery Manager Email ID</label>
+            <input
+              type="email"
+              className="form-input"
+              value={deliveryManagerEmail}
+              onChange={(e) => setDeliveryManagerEmail(e.target.value)}
+              placeholder="manager@example.com"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Phone Number</label>
+            <input
+              type="tel"
+              className="form-input"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="+1234567890"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Visit Date</label>
+            <input
+              type="date"
+              className="form-input"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Infy Email</label>
+            <input
+              type="email"
+              className="form-input"
+              value={infyEmail}
+              onChange={(e) => setInfyEmail(e.target.value)}
+              placeholder="yourname@infosys.com"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Building Number</label>
+            <input
+              type="text"
+              className="form-input"
+              value={buildingNumber}
+              onChange={(e) => setBuildingNumber(e.target.value)}
+              placeholder="e.g., Building 1, Floor 2"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Upload Aadhar Card</label>
+            <div className="file-upload">
               <input
-                type="text"
-                className="form-input"
-                value={visitor.name}
-                onChange={(e) => updateVisitor(index, 'name', e.target.value)}
-                required
+                type="file"
+                id="aadhar-upload"
+                onChange={handleAadharChange}
+                accept=".pdf,.jpg,.jpeg,.png"
               />
+              <label htmlFor="aadhar-upload" className="file-upload-label">
+                {aadharDocument ? <span className="file-name">{aadharDocument.name}</span> : 'Click to upload Aadhar card'}
+              </label>
             </div>
           </div>
-        ))}
-      </div>
-      <button type="button" className="btn btn-secondary" onClick={addVisitor}>
-        Add Visitor
-      </button>
-      <div className="form-group">
-        <label className="form-label">Purpose of Visit</label>
-        <textarea
-          className="form-textarea"
-          value={purposeOfVisit}
-          onChange={(e) => setPurposeOfVisit(e.target.value)}
-          required
-        />
-      </div>
-      <div className="date-time-group">
+          <div className="form-group">
+            <label className="form-label">Delivery Manager Approval Mail Screenshot</label>
+            <div className="file-upload">
+              <input
+                type="file"
+                id="approval-mail-upload"
+                onChange={handleApprovalMailChange}
+                accept=".pdf,.jpg,.jpeg,.png"
+              />
+              <label htmlFor="approval-mail-upload" className="file-upload-label">
+                {approvalMailScreenshot ? <span className="file-name">{approvalMailScreenshot.name}</span> : 'Click to upload approval mail screenshot'}
+              </label>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    // Render Vendor/Supplier form
+    return (
+      <>
         <div className="form-group">
-          <label className="form-label">Visit Date</label>
+          <label className="form-label">Vendor Company Name</label>
           <input
-            type="date"
+            type="text"
             className="form-input"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
             required
           />
         </div>
         <div className="form-group">
-          <label className="form-label">Visit Time</label>
-          <input
-            type="time"
-            className="form-input"
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            required
-          />
-        </div>
-      </div>
-      <div className="date-time-group">
-        <div className="form-group">
-          <label className="form-label">End Date</label>
-          <input
-            type="date"
-            className="form-input"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+          <label className="form-label">Company Address</label>
+          <textarea
+            className="form-textarea"
+            value={companyAddress}
+            onChange={(e) => setCompanyAddress(e.target.value)}
             required
           />
         </div>
         <div className="form-group">
-          <label className="form-label">End Time</label>
+          <label className="form-label">Company Contact</label>
           <input
-            type="time"
+            type="tel"
             className="form-input"
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
+            value={companyContact}
+            onChange={(e) => setCompanyContact(e.target.value)}
+            placeholder="+1234567890"
             required
           />
         </div>
-      </div>
-      <div className="form-group">
-        <label className="form-label">Upload Document</label>
-        <div className="file-upload">
-          <input
-            type="file"
-            id="file-upload"
-            onChange={handleFileChange}
-            accept=".pdf,.jpg,.jpeg,.png"
+        <div className="form-group">
+          <label className="form-label">Purpose of Visit</label>
+          <textarea
+            className="form-textarea"
+            value={purposeOfVisit}
+            onChange={(e) => setPurposeOfVisit(e.target.value)}
+            required
           />
-          <label htmlFor="file-upload" className="file-upload-label">
-            {document ? <span className="file-name">{document.name}</span> : 'Click to upload document'}
-          </label>
         </div>
-      </div>
-    </>
-  );
+        <div className="date-time-group">
+          <div className="form-group">
+            <label className="form-label">Visit Date</label>
+            <input
+              type="date"
+              className="form-input"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Visit Time (9:00 AM - 5:00 PM)</label>
+            <input
+              type="time"
+              className="form-input"
+              value={startTime}
+              onChange={handleTimeChange}
+              min="09:00"
+              max="17:00"
+              required
+            />
+          </div>
+        </div>
+        <div className="visitors-list">
+          {visitors.map((visitor, index) => (
+            <div key={index} className="visitor-card">
+              <h4>Visitor {index + 1}</h4>
+              <div className="form-group">
+                <label className="form-label">Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={visitor.name}
+                  onChange={(e) => updateVisitor(index, 'name', e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <button type="button" className="btn btn-secondary" onClick={addVisitor}>
+          Add Visitor
+        </button>
+        <div className="form-group">
+          <label className="form-label">Upload Document</label>
+          <div className="file-upload">
+            <input
+              type="file"
+              id="file-upload"
+              onChange={handleFileChange}
+              accept=".pdf,.jpg,.jpeg,.png"
+            />
+            <label htmlFor="file-upload" className="file-upload-label">
+              {document ? <span className="file-name">{document.name}</span> : 'Click to upload document'}
+            </label>
+          </div>
+        </div>
+      </>
+    );
+  };
 
   const renderComplianceForm = () => (
     <>
